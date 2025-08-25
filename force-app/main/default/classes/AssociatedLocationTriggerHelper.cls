@@ -9,16 +9,24 @@ public with sharing class AssociatedLocationTriggerHelper {
 
         List<AccountTeamMember> accountTeamMemberListToInsert = new List<AccountTeamMember>();
         List<AccountTeamMember> accountTeamMemberList = [SELECT AccountId, UserId FROM AccountTeamMember WHERE UserId IN: UsersIds];
-        for(AssociatedLocation__c a : newRecordList){
-            Boolean AlreadyExist = false;
+        for(AssociatedLocation__c newAL : newRecordList){
+            Boolean AlreadyExistInDatabase = false;
             for(AccountTeamMember atm : accountTeamMemberList){
-                if(atm.UserId == a.User__c && atm.AccountId == a.Account__c){
-                    AlreadyExist = true;
+                if(atm.UserId == newAL.User__c && atm.AccountId == newAL.Account__c){
+                    AlreadyExistInDatabase = true;
                 }
             }
-            if(AlreadyExist == false){
-                AccountTeamMember atm = new AccountTeamMember(AccountId = a.Account__c, UserId= a.User__c);
-                accountTeamMemberListToInsert.add(atm);
+            if(AlreadyExistInDatabase == false){
+                Boolean AlreadyAdd = false;
+                for(AccountTeamMember atm : accountTeamMemberListToInsert){
+                    if(atm.UserId == newAL.User__c && atm.AccountId == newAL.Account__c){
+                        AlreadyAdd = true;
+                    }
+                }
+                if(AlreadyAdd == false){
+                    AccountTeamMember atm = new AccountTeamMember(AccountId = newAL.Account__c, UserId= newAL.User__c);
+                    accountTeamMemberListToInsert.add(atm);
+                }
             }
         }
         insert accountTeamMemberListToInsert;
