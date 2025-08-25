@@ -34,7 +34,7 @@ public with sharing class AssociatedLocationTriggerHandler {
 		AssociatedLocationTriggerHelper.handleInsertAccountTeamMember(this.newRecordList);
 	}
 	public void afterUpdate() {
-        //AssociatedLocationTriggerHelper.handleUpdateAccountTeamMember(this.newRecordList, this.oldRecordMap);
+        AssociatedLocationTriggerHelper.handleUpdateAccountTeamMember(this.newRecordList, this.oldRecordMap);
 	}
 	public void afterDelete() {
         AssociatedLocationTriggerHelper.handleDeleteAccountTeamMember(this.oldRecordList);
