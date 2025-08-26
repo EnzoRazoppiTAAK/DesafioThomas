@@ -1,25 +1,25 @@
 public with sharing class AssociatedLocationTriggerHelper {
 
-    public static void handleInsertAccountTeamMember(List<AssociatedLocation__c> newRecordList){
-        
-        List<Id> UsersIds = new List<Id>();
-        for(AssociatedLocation__c a : newRecordList){
-            UsersIds.add(a.User__c);
+    public static void handleInsertAccountTeamMember(List<AssociatedLocation__c> newRecordList) {
+        List<Id> usersIds = new List<Id>();
+        for(AssociatedLocation__c iAssociatedLocation : newRecordList) {
+            usersIds.add(iAssociatedLocation.User__c);
         }
 
         List<AccountTeamMember> accountTeamMemberListToInsert = new List<AccountTeamMember>();
-        List<AccountTeamMember> accountTeamMemberList = [SELECT AccountId, UserId FROM AccountTeamMember WHERE UserId IN: UsersIds];
-        for(AssociatedLocation__c newAL : newRecordList){
-            Boolean AlreadyExistInDatabase = false;
-            for(AccountTeamMember atm : accountTeamMemberList){
-                if(atm.UserId == newAL.User__c && atm.AccountId == newAL.Account__c){
-                    AlreadyExistInDatabase = true;
+        List<AccountTeamMember> accountTeamMemberList = [SELECT AccountId, UserId FROM AccountTeamMember WHERE UserId IN: usersIds];
+        for(AssociatedLocation__c newAL : newRecordList) {
+            Boolean alreadyExistInDatabase = false;
+            for(AccountTeamMember iAccountTeamMember : accountTeamMemberList) {
+                if(iAccountTeamMember.UserId == newAL.User__c && iAccountTeamMember.AccountId == newAL.Account__c){
+                    alreadyExistInDatabase = true;
                 }
             }
-            if(AlreadyExistInDatabase == false){
+
+            if(!alreadyExistInDatabase) {
                 Boolean AlreadyAdd = false;
-                for(AccountTeamMember atm : accountTeamMemberListToInsert){
-                    if(atm.UserId == newAL.User__c && atm.AccountId == newAL.Account__c){
+                for(AccountTeamMember iAccountTeamMember : accountTeamMemberListToInsert) {
+                    if(iAccountTeamMember.UserId == newAL.User__c && iAccountTeamMember.AccountId == newAL.Account__c){
                         AlreadyAdd = true;
                     }
                 }
@@ -31,13 +31,15 @@ public with sharing class AssociatedLocationTriggerHelper {
         }
         insert accountTeamMemberListToInsert;
     }
+    
     public static void handleUpdateAccountTeamMember(List<AssociatedLocation__c> newRecordList, Map<Id, AssociatedLocation__c> oldRecordMap){
+        //refazer!!!
         List<AccountTeamMember> accountTeamMemberListToInsert = new List<AccountTeamMember>();
         List<AssociatedLocation__c> changedAssociatedLocationList = new List<AssociatedLocation__c>();
         List<AssociatedLocation__c> associatedLocationListToDelete = new List<AssociatedLocation__c>();
         List<AccountTeamMember> accountTeamMemberListToDelete = new List<AccountTeamMember>();
         
-        for(AssociatedLocation__c newAL : newRecordList){
+        for(AssociatedLocation__c newAL : newRecordList) {
             Boolean changed = false;
             for(AssociatedLocation__c OldAL: oldRecordMap.values()){
                 if(newAL.Id == OldAL.Id && newAL.User__c != OldAL.User__c){
