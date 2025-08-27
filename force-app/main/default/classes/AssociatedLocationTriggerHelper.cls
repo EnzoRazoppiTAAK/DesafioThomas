@@ -1,15 +1,15 @@
 public with sharing class AssociatedLocationTriggerHelper {
 
     public static void handleInsertAccountTeamMember(List<AssociatedLocation__c> newRecordList){
-        Set<Id> UsersIds = new Set<Id>();
+        Set<Id> usersIds = new Set<Id>();
         for(AssociatedLocation__c iAssociatedLocation : newRecordList){
-            UsersIds.add(iAssociatedLocation.User__c);
+            usersIds.add(iAssociatedLocation.User__c);
         }
         List<AccountTeamMember> accountTeamMemberListToInsert = new List<AccountTeamMember>();
         List<AccountTeamMember> accountTeamMemberList = [
             SELECT AccountId, UserId 
             FROM AccountTeamMember 
-            WHERE UserId IN: UsersIds
+            WHERE UserId IN: usersIds
             ];
         for(AssociatedLocation__c inewAssociatedLocation : newRecordList){
             Boolean AlreadyExistInDatabase = false;
@@ -26,7 +26,7 @@ public with sharing class AssociatedLocationTriggerHelper {
                         AlreadyAdd = true;
                     }
                 }
-                if(AlreadyAdd == false){
+                if(!AlreadyAdd){
                     AccountTeamMember accountTeamMember = new AccountTeamMember(AccountId = inewAssociatedLocation.Account__c, UserId= inewAssociatedLocation.User__c);
                     accountTeamMemberListToInsert.add(accountTeamMember);
                 }
