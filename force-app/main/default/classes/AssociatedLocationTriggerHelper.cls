@@ -1,161 +1,149 @@
 public with sharing class AssociatedLocationTriggerHelper {
 
     public static void handleInsertAccountTeamMember(List<AssociatedLocation__c> newRecordList){
-        
-        List<Id> UsersIds = new List<Id>();
-        for(AssociatedLocation__c a : newRecordList){
-            UsersIds.add(a.User__c);
+        Set<Id> UsersIds = new Set<Id>();
+        for(AssociatedLocation__c iAssociatedLocation : newRecordList){
+            UsersIds.add(iAssociatedLocation.User__c);
         }
-
         List<AccountTeamMember> accountTeamMemberListToInsert = new List<AccountTeamMember>();
-        List<AccountTeamMember> accountTeamMemberList = [SELECT AccountId, UserId FROM AccountTeamMember WHERE UserId IN: UsersIds];
-        for(AssociatedLocation__c newAL : newRecordList){
+        List<AccountTeamMember> accountTeamMemberList = [
+            SELECT AccountId, UserId 
+            FROM AccountTeamMember 
+            WHERE UserId IN: UsersIds
+            ];
+        for(AssociatedLocation__c inewAssociatedLocation : newRecordList){
             Boolean AlreadyExistInDatabase = false;
-            for(AccountTeamMember atm : accountTeamMemberList){
-                if(atm.UserId == newAL.User__c && atm.AccountId == newAL.Account__c){
+            for(AccountTeamMember iAccountTeamMember : accountTeamMemberList){
+                if(iAccountTeamMember.UserId == inewAssociatedLocation.User__c && iAccountTeamMember.AccountId == inewAssociatedLocation.Account__c){
                     AlreadyExistInDatabase = true;
                 }
             }
             if(AlreadyExistInDatabase == false){
                 Boolean AlreadyAdd = false;
-                for(AccountTeamMember atm : accountTeamMemberListToInsert){
-                    if(atm.UserId == newAL.User__c && atm.AccountId == newAL.Account__c){
+                for(AccountTeamMember iAccountTeamMember : accountTeamMemberListToInsert){
+                    if(iAccountTeamMember.UserId == inewAssociatedLocation.User__c && iAccountTeamMember.AccountId == inewAssociatedLocation.Account__c){
                         AlreadyAdd = true;
                     }
                 }
                 if(AlreadyAdd == false){
-                    AccountTeamMember atm = new AccountTeamMember(AccountId = newAL.Account__c, UserId= newAL.User__c);
-                    accountTeamMemberListToInsert.add(atm);
+                    AccountTeamMember accountTeamMember = new AccountTeamMember(AccountId = inewAssociatedLocation.Account__c, UserId= inewAssociatedLocation.User__c);
+                    accountTeamMemberListToInsert.add(accountTeamMember);
                 }
             }
         }
         insert accountTeamMemberListToInsert;
     }
     public static void handleUpdateAccountTeamMember(List<AssociatedLocation__c> newRecordList, Map<Id, AssociatedLocation__c> oldRecordMap){
+        Set<AssociatedLocation__c> newChangedAssociatedLocationSet = new Set<AssociatedLocation__c>();
+        Set<AssociatedLocation__c> oldChangedAssociatedLocationSet = new Set<AssociatedLocation__c>();
         List<AccountTeamMember> accountTeamMemberListToInsert = new List<AccountTeamMember>();
-        List<AssociatedLocation__c> changedAssociatedLocationList = new List<AssociatedLocation__c>();
-        List<AssociatedLocation__c> associatedLocationListToDelete = new List<AssociatedLocation__c>();
-        List<AccountTeamMember> accountTeamMemberListToDelete = new List<AccountTeamMember>();
-        
-        for(AssociatedLocation__c newAL : newRecordList){
-            Boolean changed = false;
-            for(AssociatedLocation__c OldAL: oldRecordMap.values()){
-                if(newAL.Id == OldAL.Id && newAL.User__c != OldAL.User__c){
-                    changed = true;
-                    changedAssociatedLocationList.add(OldAL);
-                }
-            }
-            if(changed == true){
-                accountTeamMemberListToInsert.add(new AccountTeamMember(AccountId = newAL.Account__c, UserId= newAL.User__c));
+        for(AssociatedLocation__c iNewAssociatedLocation : newRecordList){
+            AssociatedLocation__c iOldAssociatedLocation = oldRecordMap.get(iNewAssociatedLocation.Id);
+            if(iNewAssociatedLocation.User__c != iOldAssociatedLocation.User__c || iNewAssociatedLocation.Account__c != iOldAssociatedLocation.Account__c){
+                newChangedAssociatedLocationSet.add(iNewAssociatedLocation);
+                oldChangedAssociatedLocationSet.add(iOldAssociatedLocation);
             }
         }
-
-        //Etapa 3
-
-        List<AssociatedLocation__c> alThatHaveChangedAccounts = new List<AssociatedLocation__c>();
-        List<AssociatedLocation__c> newALs = new List<AssociatedLocation__c>();
-        List<Id> oldAccountsIds = new List<Id>();
-        List<Id> oldUsersIds = new List<Id>();
-
-        for(AssociatedLocation__c newAL : newRecordList){
-            Boolean changed = false;
-            for(AssociatedLocation__c oldAL: oldRecordMap.values()){
-                if(newAL.Id == oldAL.Id && newAL.Account__c != oldAL.Account__c){
-                    changed = true;
-                    alThatHaveChangedAccounts.add(oldAL);
-                    oldAccountsIds.add(oldAL.Account__c);
-                    oldUsersIds.add(oldAL.User__c);
-                    newALs.add(newAL);
-                }
+        Map<String, AssociatedLocation__c> oldChangedAssociatedLocationMap = new Map<String, AssociatedLocation__c>();
+        for(AssociatedLocation__c iAssociatedLocation : oldChangedAssociatedLocationSet){
+            oldChangedAssociatedLocationMap.put(iAssociatedLocation.User__c+'-'+iAssociatedLocation.Account__c, iAssociatedLocation);
+        }
+        Set<Id> usersIdsToValidate = new Set<Id>();
+        Set<Id> accountsIdsToValidate = new Set<Id>();
+        for(AssociatedLocation__c iAssociatedLocation : newChangedAssociatedLocationSet){
+            usersIdsToValidate.add(iAssociatedLocation.User__c);
+            accountsIdsToValidate.add(iAssociatedLocation.Account__c);
+        }
+        List<AccountTeamMember> accountTeamMemberListToValidate = [
+            SELECT AccountId, UserID 
+            FROM AccountTeamMember 
+            WHERE UserId IN: usersIdsToValidate 
+            AND AccountId IN: accountsIdsToValidate
+            ];
+        for(AssociatedLocation__c iAssociatedLocation : newChangedAssociatedLocationSet){
+            AccountTeamMember accountTeamMemberToValidate = new AccountTeamMember(AccountId = iAssociatedLocation.Account__c, UserId= iAssociatedLocation.User__c);
+            if(!accountTeamMemberListToValidate.contains(accountTeamMemberToValidate)){
+                accountTeamMemberListToInsert.add(accountTeamMemberToValidate);
             }
         }
-        List<AssociatedLocation__c> searchForOldUsersAndAccounts = [SELECT Account__c, User__c FROM AssociatedLocation__c 
-        WHERE Account__c IN: oldAccountsIds AND User__c IN: oldUsersIds];
-        for(AssociatedLocation__c AL: alThatHaveChangedAccounts){
-            Boolean haveAnotherLA = false;
-            for(AssociatedLocation__c search: searchForOldUsersAndAccounts){
-                if(AL.Account__c == search.Account__c && AL.User__c == search.User__c){
-                    haveAnotherLA = true;
-                }
-            }
-            if(haveAnotherLA == false){
-                associatedLocationListToDelete.add(AL);
-                for(AssociatedLocation__c newAL: newALs){
-                    if(AL.Id == newAL.Id){
-                        accountTeamMemberListToInsert.add(new AccountTeamMember(AccountId = newAL.Account__c, UserId= newAL.User__c));
-                    }
-                }
-            }
-        }
-        List<AccountTeamMember> accountTeamMemberList1 = [SELECT AccountId, UserId FROM AccountTeamMember 
-        WHERE AccountId IN: oldAccountsIds AND UserId IN: oldUsersIds];
-        for(AssociatedLocation__c AL : associatedLocationListToDelete){
-            for(AccountTeamMember accountTeamMember : accountTeamMemberList1){
-                if(accountTeamMember.AccountId == AL.Account__c && accountTeamMember.UserId == AL.User__c){
-                    accountTeamMemberListToDelete.add(accountTeamMember);
-                }
-            }
-        }
-        //fim da etapa 3
-
         insert accountTeamMemberListToInsert;
-
-        List<Id> UsersIds = new List<Id>();
-        for(AssociatedLocation__c AL : changedAssociatedLocationList){
-            UsersIds.add(AL.User__c);
+        Set<Id> oldAccountsIdsToSearchDuplicates = new Set<Id>();
+        Set<Id> oldUsersIdsToSearchDuplicates = new Set<Id>();
+        for(AssociatedLocation__c iAssociatedLocation : oldChangedAssociatedLocationMap.values()){
+            oldAccountsIdsToSearchDuplicates.add(iAssociatedLocation.Account__c);
+            oldUsersIdsToSearchDuplicates.add(iAssociatedLocation.User__c);
         }
-        List<Id> AccountsIds = new List<Id>();
-        for(AssociatedLocation__c AL : changedAssociatedLocationList){
-            AccountsIds.add(AL.Account__c);
-        }
-
-        List<AssociatedLocation__c> haveOtherLA = [SELECT Account__c, User__c FROM AssociatedLocation__c 
-        WHERE Account__c IN: AccountsIds AND User__c IN: UsersIds];
-        for(AssociatedLocation__c changedAL : changedAssociatedLocationList){
-            Boolean haveAnotherLA = false;
-            for(AssociatedLocation__c AL : haveOtherLA){
-                if(changedAL.Account__c == AL.Account__c && changedAL.User__c == AL.User__c){
-                    haveAnotherLA = true;
-                }
-            }
-            if(haveAnotherLA == false){
-                associatedLocationListToDelete.add(changedAL);
+        List<AssociatedLocation__c> ExistAnotherInDatabase = [
+            SELECT User__c, Account__c 
+            FROM AssociatedLocation__c 
+            WHERE User__c IN: oldUsersIdsToSearchDuplicates
+            AND Account__c IN: oldAccountsIdsToSearchDuplicates
+            ];
+        for(AssociatedLocation__c iAssociatedLocation : ExistAnotherInDatabase){
+            if(oldChangedAssociatedLocationMap.containsKey(iAssociatedLocation.User__c+'-'+iAssociatedLocation.Account__c)){
+                oldChangedAssociatedLocationMap.remove(iAssociatedLocation.User__c+'-'+iAssociatedLocation.Account__c);
             }
         }
-        List<AccountTeamMember> accountTeamMemberList2 = [SELECT AccountId, UserId FROM AccountTeamMember 
-        WHERE AccountId IN: AccountsIds AND UserId IN: UsersIds];
-        for(AssociatedLocation__c AL : associatedLocationListToDelete){
-            for(AccountTeamMember accountTeamMember : accountTeamMemberList2){
-                if(accountTeamMember.AccountId == AL.Account__c && accountTeamMember.UserId == AL.User__c){
-                    accountTeamMemberListToDelete.add(accountTeamMember);
-                }
+        Set<Id> accountsIdsToDelete = new Set<Id>();
+        Set<Id> usersIdsToDelete = new Set<Id>();
+        for(AssociatedLocation__c iAssociatedLocation : oldChangedAssociatedLocationMap.values()){
+            accountsIdsToDelete.add(iAssociatedLocation.Account__c);
+            usersIdsToDelete.add(iAssociatedLocation.User__c);
+        }
+        List<AccountTeamMember> accountTeamMemberList = [
+            SELECT Id, UserId, AccountId 
+            FROM AccountTeamMember 
+            WHERE UserId IN: usersIdsToDelete 
+            AND AccountId IN: accountsIdsToDelete
+            ];
+        List<AccountTeamMember> accountTeamMemberListToDelete = new List<AccountTeamMember>();
+        for(AccountTeamMember iAccountTeamMember : accountTeamMemberList){
+            if(oldChangedAssociatedLocationMap.containsKey(iAccountTeamMember.UserId+'-'+iAccountTeamMember.AccountId)){
+                accountTeamMemberListToDelete.add(iAccountTeamMember);
             }
         }
-
         delete accountTeamMemberListToDelete;
     }
 
     public static void handleDeleteAccountTeamMember(List<AssociatedLocation__c> oldRecordList){
-        List<Id> UsersIds = new List<Id>();
-        for(AssociatedLocation__c a : oldRecordList){
-            UsersIds.add(a.User__c);
+        List<AssociatedLocation__c> associatedLocationToDelete = new List<AssociatedLocation__c>();
+        Map<String, AssociatedLocation__c> associatedLocationMap = new Map<String, AssociatedLocation__c>();
+        for(AssociatedLocation__c iAssociatedLocation : oldRecordList){
+            associatedLocationMap.put(iAssociatedLocation.User__c+'-'+iAssociatedLocation.Account__c, iAssociatedLocation);
         }
-        List<Id> AccountsIds = new List<Id>();
-        for(AssociatedLocation__c a : oldRecordList){
-            AccountsIds.add(a.Account__c);
+        Set<Id> oldUsersIds = new Set<Id>();
+        Set<Id> oldAccountsIds = new Set<Id>();
+        for(AssociatedLocation__c iAssociatedLocation : associatedLocationMap.values()){
+            oldUsersIds.add(iAssociatedLocation.User__c);
+            oldAccountsIds.add(iAssociatedLocation.Account__c);
         }
-
-        List<AccountTeamMember> accountTeamMemberList = [SELECT AccountId, UserID FROM AccountTeamMember 
-        WHERE UserId IN: UsersIds AND AccountId IN: AccountsIds];
-
+        List<AssociatedLocation__c> haveAnotherAssociatedLocation = [
+            SELECT User__c, Account__c 
+            FROM AssociatedLocation__c 
+            WHERE User__c IN: oldUsersIds 
+            AND Account__c IN: oldAccountsIds
+        ];
+        for(AssociatedLocation__c iAssociatedLocation : haveAnotherAssociatedLocation){
+            if(associatedLocationMap.containsKey(iAssociatedLocation.User__c+'-'+iAssociatedLocation.Account__c)){
+                associatedLocationMap.remove(iAssociatedLocation.User__c+'-'+iAssociatedLocation.Account__c);
+            }
+        }
+        Set<Id> usersIdsToDelete = new Set<Id>();
+        Set<Id> accountsIdsToDelete = new Set<Id>();
+        for(AssociatedLocation__c iAssociatedLocation : associatedLocationMap.values()){
+            usersIdsToDelete.add(iAssociatedLocation.User__c);
+            accountsIdsToDelete.add(iAssociatedLocation.Account__c);
+        }
+        List<AccountTeamMember> accountTeamMemberList = [
+            SELECT AccountId, UserID 
+            FROM AccountTeamMember 
+            WHERE UserId IN: usersIdsToDelete 
+            AND AccountId IN: accountsIdsToDelete
+            ];
         List<AccountTeamMember> accountTeamMemberListToDelete = new List<AccountTeamMember>();
-
-        for (AccountTeamMember accountTeamMember : accountTeamMemberList){
-            for(AssociatedLocation__c oldAL : oldRecordList){
-                if(accountTeamMember.AccountId == oldAL.Account__c && accountTeamMember.UserId == oldAL.User__c){
-                    accountTeamMemberListToDelete.add(accountTeamMember);
-                    break;
-                }
+        for (AccountTeamMember iAccountTeamMember : accountTeamMemberList){
+            if(associatedLocationMap.containsKey(iAccountTeamMember.UserId+'-'+iAccountTeamMember.AccountId)){
+                accountTeamMemberListToDelete.add(iAccountTeamMember);
             }
         }
         delete accountTeamMemberListToDelete;
