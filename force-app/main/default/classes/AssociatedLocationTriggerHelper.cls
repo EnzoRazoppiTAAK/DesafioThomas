@@ -18,7 +18,8 @@ public with sharing class AssociatedLocationTriggerHelper {
                     AlreadyExistInDatabase = true;
                 }
             }
-            if(AlreadyExistInDatabase == false){
+
+            if(!alreadyExistInDatabase) {
                 Boolean AlreadyAdd = false;
                 for(AccountTeamMember iAccountTeamMember : accountTeamMemberListToInsert){
                     if(iAccountTeamMember.UserId == inewAssociatedLocation.User__c && iAccountTeamMember.AccountId == inewAssociatedLocation.Account__c){
@@ -33,6 +34,7 @@ public with sharing class AssociatedLocationTriggerHelper {
         }
         insert accountTeamMemberListToInsert;
     }
+    
     public static void handleUpdateAccountTeamMember(List<AssociatedLocation__c> newRecordList, Map<Id, AssociatedLocation__c> oldRecordMap){
         Set<AssociatedLocation__c> newChangedAssociatedLocationSet = new Set<AssociatedLocation__c>();
         Set<AssociatedLocation__c> oldChangedAssociatedLocationSet = new Set<AssociatedLocation__c>();
